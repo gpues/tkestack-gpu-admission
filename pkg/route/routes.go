@@ -84,15 +84,6 @@ func PredicateRoute(predicate predicate.Predicate) httprouter.Handle {
 	}
 }
 
-// VersionRoute returns the version of router in response
-func VersionRoute(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-	fmt.Fprint(w, fmt.Sprint(version.Get()))
-}
-
-func AddVersion(router *httprouter.Router) {
-	router.GET(versionPath, DebugLogging(VersionRoute, versionPath))
-}
-
 // DebugLogging wraps handler for debugging purposes
 func DebugLogging(h httprouter.Handle, path string) httprouter.Handle {
 	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -102,6 +93,14 @@ func DebugLogging(h httprouter.Handle, path string) httprouter.Handle {
 	}
 }
 
+func AddVersion(router *httprouter.Router) {
+	router.GET(versionPath, DebugLogging(VersionRoute, versionPath))
+}
+
+// VersionRoute returns the version of router in response
+func VersionRoute(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	fmt.Fprint(w, fmt.Sprint(version.Get()))
+}
 func AddPredicate(router *httprouter.Router, predicate predicate.Predicate) {
 	path := predicatesPrefix
 	router.POST(path, DebugLogging(PredicateRoute(predicate), path))

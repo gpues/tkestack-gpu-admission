@@ -14,6 +14,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
 package algorithm
 
 import (
@@ -99,7 +100,7 @@ func (alloc *allocator) AllocateOne(container *v1.Container) ([]*device.DeviceIn
 
 	switch {
 	case needCores < util.HundredCore:
-		devs = NewShareMode(alloc.nodeInfo).Evaluate(needCores, needMemory)
+		devs = NewShareMode(alloc.nodeInfo).Evaluate(needCores, needMemory) // 所有符合条件的
 		sharedMode = true
 	default:
 		devs = NewExclusiveMode(alloc.nodeInfo).Evaluate(needCores, needMemory)
@@ -122,8 +123,7 @@ func (alloc *allocator) AllocateOne(container *v1.Container) ([]*device.DeviceIn
 	for _, dev := range devs {
 		err := alloc.nodeInfo.AddUsedResources(dev.GetID(), vcore, vmemory)
 		if err != nil {
-			klog.Infof("failed to update used resource for node %s dev %d due to %v",
-				node.Name, dev.GetID(), err)
+			klog.Infof("failed to update used resource for node %s dev %d due to %v", node.Name, dev.GetID(), err)
 			return nil, err
 		}
 	}

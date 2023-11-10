@@ -87,10 +87,8 @@ func main() {
 }
 
 func addFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&kubeconfig, "kubeconfig", "",
-		"Path to a kubeconfig. Only required if out-of-cluster.")
-	fs.StringVar(&masterURL, "master", "",
-		"The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
+	fs.StringVar(&kubeconfig, "kubeconfig", "", "Path to a kubeconfig. Only required if out-of-cluster.")
+	fs.StringVar(&masterURL, "master", "", "The address of the Kubernetes API server. Overrides any value in kubeconfig. Only required if out-of-cluster.")
 	fs.StringVar(&listenAddress, "address", "127.0.0.1:3456", "The address it will listen")
 	fs.StringVar(&profileAddress, "pprofAddress", "127.0.0.1:3457", "The address for debug")
 }
@@ -108,8 +106,7 @@ func initFlags() {
 	// Only glog flags will be added
 	flag.CommandLine.VisitAll(func(goflag *flag.Flag) {
 		switch goflag.Name {
-		case "logtostderr", "alsologtostderr",
-			"v", "stderrthreshold", "vmodule", "log_backtrace_at", "log_dir":
+		case "logtostderr", "alsologtostderr", "v", "stderrthreshold", "vmodule", "log_backtrace_at", "log_dir":
 			pflag.CommandLine.AddGoFlag(goflag)
 		}
 	})

@@ -44,13 +44,11 @@ func (dev *DeviceInfo) GetID() int {
 // AddUsedResources records the used GPU core and memory
 func (dev *DeviceInfo) AddUsedResources(usedCore uint, usedMemory uint) error {
 	if usedCore+dev.usedCore > util.HundredCore {
-		return fmt.Errorf("update usedcore failed, request: %d, already used: %d",
-			usedCore, dev.usedCore)
+		return fmt.Errorf("update usedcore failed, request: %d, already used: %d", usedCore, dev.usedCore)
 	}
 
 	if usedMemory+dev.usedMemory > dev.totalMemory {
-		return fmt.Errorf("update usedmemory failed, request: %d, already used: %d",
-			usedMemory, dev.usedMemory)
+		return fmt.Errorf("update usedmemory failed, request: %d, already used: %d", usedMemory, dev.usedMemory)
 	}
 
 	dev.usedCore += usedCore

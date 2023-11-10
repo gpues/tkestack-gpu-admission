@@ -14,6 +14,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
 package algorithm
 
 import (
@@ -29,13 +30,13 @@ type exclusiveMode struct {
 	node *device.NodeInfo
 }
 
-//NewExclusiveMode returns a new exclusiveMode struct.
+// NewExclusiveMode returns a new exclusiveMode struct.
 //
-//Evaluate() of exclusiveMode returns one or more empty devices
-//which fullfil the request.
+// Evaluate() of exclusiveMode returns one or more empty devices
+// which fullfil the request.
 //
-//Exclusive mode means GPU devices are not sharing, only one
-//application can use them.
+// Exclusive mode means GPU devices are not sharing, only one
+// application can use them.
 func NewExclusiveMode(n *device.NodeInfo) *exclusiveMode {
 	return &exclusiveMode{n}
 }
@@ -75,8 +76,7 @@ func (al *exclusiveMode) Evaluate(cores uint, _ uint) []*device.DeviceInfo {
 
 	if klog.V(2) {
 		for _, dev := range devs {
-			klog.V(4).Infof("Pick up %d , cores: %d, memory: %d",
-				dev.GetID(), dev.AllocatableCores(), dev.AllocatableMemory())
+			klog.V(4).Infof("Pick up %d , cores: %d, memory: %d", dev.GetID(), dev.AllocatableCores(), dev.AllocatableMemory())
 		}
 	}
 

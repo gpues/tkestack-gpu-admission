@@ -77,8 +77,7 @@ func NewNodeInfo(node *v1.Node, pods []*v1.Pod) *NodeInfo {
 				}
 				err = ret.AddUsedResources(index, vcore, vmemory)
 				if err != nil {
-					klog.Infof("failed to update used resource for node %s dev %d due to %v",
-						node.Name, index, err)
+					klog.Infof("failed to update used resource for node %s dev %d due to %v", node.Name, index, err)
 				}
 			}
 

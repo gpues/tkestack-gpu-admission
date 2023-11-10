@@ -14,6 +14,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
 package predicate
 
 import (
@@ -51,38 +52,9 @@ const (
 	waitTimeout   = 10 * time.Second
 )
 
-func NewGPUFilter(client kubernetes.Interface) (*GPUFilter, error) {
-	nodeInformerFactory := kubeinformers.NewSharedInformerFactory(client, time.Second*30)
+type filterFunc func(*corev1.Pod, []corev1.Node) ([]corev1.Node, extenderv1.FailedNodesMap, error)
 
-	podListOptions := func(options *metav1.ListOptions) {
-		options.FieldSelector = fmt.Sprintf("%s!=%s", PodPhaseField, corev1.PodSucceeded)
-	}
-	podInformerFactory := kubeinformers.NewSharedInformerFactoryWithOptions(client,
-		time.Second*30, kubeinformers.WithNamespace(metav1.NamespaceAll),
-		kubeinformers.WithTweakListOptions(podListOptions))
-
-	gpuFilter := &GPUFilter{
-		kubeClient: client,
-		nodeLister: nodeInformerFactory.Core().V1().Nodes().Lister(),
-		podLister:  podInformerFactory.Core().V1().Pods().Lister(),
-	}
-
-	go nodeInformerFactory.Start(nil)
-	go podInformerFactory.Start(nil)
-
-	return gpuFilter, nil
-}
-
-func (gpuFilter *GPUFilter) Name() string {
-	return NAME
-}
-
-type filterFunc func(*corev1.Pod, []corev1.Node) ([]corev1.Node, extenderv1.FailedNodesMap,
-	error)
-
-func (gpuFilter *GPUFilter) Filter(
-	args extenderv1.ExtenderArgs,
-) *extenderv1.ExtenderFilterResult {
+func (gpuFilter *GPUFilter) Filter(args extenderv1.ExtenderArgs) *extenderv1.ExtenderFilterResult {
 	if !util.IsGPURequiredPod(args.Pod) {
 		return &extenderv1.ExtenderFilterResult{
 			Nodes:       args.Nodes,
@@ -118,10 +90,9 @@ func (gpuFilter *GPUFilter) Filter(
 	}
 }
 
-//deviceFilter will choose one and only one node fullfil the request,
-//so it should always be the last filter of gpuFilter
-func (gpuFilter *GPUFilter) deviceFilter(
-	pod *corev1.Pod, nodes []corev1.Node) ([]corev1.Node, extenderv1.FailedNodesMap, error) {
+// deviceFilter will choose one and only one node fullfil the request,
+// so it should always be the last filter of gpuFilter
+func (gpuFilter *GPUFilter) deviceFilter(pod *corev1.Pod, nodes []corev1.Node) ([]corev1.Node, extenderv1.FailedNodesMap, error) {
 	// #lizard forgives
 	var (
 		filteredNodes  = make([]corev1.Node, 0)
@@ -137,7 +108,7 @@ func (gpuFilter *GPUFilter) deviceFilter(
 		if strings.Contains(k, util.GPUAssigned) ||
 			strings.Contains(k, util.PredicateTimeAnnotation) ||
 			strings.Contains(k, util.PredicateGPUIndexPrefix) {
-			return filteredNodes, failedNodesMap, fmt.Errorf("pod %s had been predicated!", pod.Name)
+			return filteredNodes, failedNodesMap, fmt.Errorf("pod %s had been predicated", pod.Name)
 		}
 	}
 
@@ -160,16 +131,14 @@ func (gpuFilter *GPUFilter) deviceFilter(
 	for _, nodeInfo := range nodeInfoList {
 		node := nodeInfo.GetNode()
 		if success {
-			failedNodesMap[node.Name] = fmt.Sprintf(
-				"pod %s has already been matched to another node", pod.UID)
+			failedNodesMap[node.Name] = fmt.Sprintf("pod %s has already been matched to another node", pod.UID)
 			continue
 		}
 
 		alloc := algorithm.NewAllocator(nodeInfo)
 		newPod, err := alloc.Allocate(pod)
 		if err != nil {
-			failedNodesMap[node.Name] = fmt.Sprintf(
-				"pod %s does not match with this node", pod.UID)
+			failedNodesMap[node.Name] = fmt.Sprintf("pod %s does not match with this node", pod.UID)
 			continue
 		} else {
 			annotationMap := make(map[string]string)
@@ -194,34 +163,7 @@ func (gpuFilter *GPUFilter) deviceFilter(
 	return filteredNodes, failedNodesMap, nil
 }
 
-func (gpuFilter *GPUFilter) ListPodsOnNode(node *corev1.Node) ([]*corev1.Pod, error) {
-	// #lizard forgives
-	pods, err := gpuFilter.podLister.Pods(corev1.NamespaceAll).List(labels.Everything())
-	if err != nil {
-		return nil, err
-	}
-
-	var ret []*corev1.Pod
-	for _, pod := range pods {
-		klog.V(9).Infof("List pod %s", pod.Name)
-		var predicateNode string
-		if pod.Spec.NodeName == "" && pod.Annotations != nil {
-			if v, ok := pod.Annotations[util.PredicateNode]; ok {
-				predicateNode = v
-			}
-		}
-		if (pod.Spec.NodeName == node.Name || predicateNode == node.Name) &&
-			pod.Status.Phase != corev1.PodSucceeded &&
-			pod.Status.Phase != corev1.PodFailed {
-			ret = append(ret, pod)
-			klog.V(9).Infof("get pod %s on node %s", pod.UID, node.Name)
-		}
-	}
-	return ret, nil
-}
-
-func (gpuFilter *GPUFilter) patchPodWithAnnotations(
-	pod *corev1.Pod, annotationMap map[string]string) error {
+func (gpuFilter *GPUFilter) patchPodWithAnnotations(pod *corev1.Pod, annotationMap map[string]string) error {
 	// update annotations by patching to the pod
 	type patchMetadata struct {
 		Annotations map[string]string `json:"annotations"`
@@ -255,4 +197,55 @@ func (gpuFilter *GPUFilter) patchPodWithAnnotations(
 		return fmt.Errorf(msg)
 	}
 	return nil
+}
+func NewGPUFilter(client kubernetes.Interface) (*GPUFilter, error) {
+	nodeInformerFactory := kubeinformers.NewSharedInformerFactory(client, time.Second*30)
+
+	podListOptions := func(options *metav1.ListOptions) {
+		options.FieldSelector = fmt.Sprintf("%s!=%s", PodPhaseField, corev1.PodSucceeded)
+	}
+	podInformerFactory := kubeinformers.NewSharedInformerFactoryWithOptions(client,
+		time.Second*30, kubeinformers.WithNamespace(metav1.NamespaceAll),
+		kubeinformers.WithTweakListOptions(podListOptions))
+
+	gpuFilter := &GPUFilter{
+		kubeClient: client,
+		nodeLister: nodeInformerFactory.Core().V1().Nodes().Lister(),
+		podLister:  podInformerFactory.Core().V1().Pods().Lister(),
+	}
+
+	go nodeInformerFactory.Start(nil)
+	go podInformerFactory.Start(nil)
+
+	return gpuFilter, nil
+}
+
+func (gpuFilter *GPUFilter) Name() string {
+	return NAME
+}
+
+func (gpuFilter *GPUFilter) ListPodsOnNode(node *corev1.Node) ([]*corev1.Pod, error) {
+	// #lizard forgives
+	pods, err := gpuFilter.podLister.Pods(corev1.NamespaceAll).List(labels.Everything())
+	if err != nil {
+		return nil, err
+	}
+
+	var ret []*corev1.Pod
+	for _, pod := range pods {
+		klog.V(9).Infof("List pod %s", pod.Name)
+		var predicateNode string
+		if pod.Spec.NodeName == "" && pod.Annotations != nil {
+			if v, ok := pod.Annotations[util.PredicateNode]; ok {
+				predicateNode = v
+			}
+		}
+		if (pod.Spec.NodeName == node.Name || predicateNode == node.Name) &&
+			pod.Status.Phase != corev1.PodSucceeded &&
+			pod.Status.Phase != corev1.PodFailed {
+			ret = append(ret, pod)
+			klog.V(9).Infof("get pod %s on node %s", pod.UID, node.Name)
+		}
+	}
+	return ret, nil
 }

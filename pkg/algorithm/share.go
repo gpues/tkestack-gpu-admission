@@ -14,6 +14,7 @@
  * WARRANTIES OF ANY KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations under the License.
  */
+
 package algorithm
 
 import (
@@ -28,13 +29,13 @@ type shareMode struct {
 	node *device.NodeInfo
 }
 
-//NewShareMode returns a new shareMode struct.
+// NewShareMode returns a new shareMode struct.
 //
-//Evaluate() of shareMode returns one device with minimum available cores
-//which fullfil the request.
+// Evaluate() of shareMode returns one device with minimum available cores
+// which fullfil the request.
 //
-//Share mode means multiple application may share one GPU device which uses
-//GPU more efficiently.
+// Share mode means multiple application may share one GPU device which uses
+// GPU more efficiently.
 func NewShareMode(n *device.NodeInfo) *shareMode {
 	return &shareMode{n}
 }
@@ -55,8 +56,7 @@ func (al *shareMode) Evaluate(cores uint, memory uint) []*device.DeviceInfo {
 
 	for _, dev := range tmpStore {
 		if dev.AllocatableCores() >= cores && dev.AllocatableMemory() >= memory {
-			klog.V(4).Infof("Pick up %d , cores: %d, memory: %d",
-				dev.GetID(), dev.AllocatableCores(), dev.AllocatableMemory())
+			klog.V(4).Infof("Pick up %d , cores: %d, memory: %d", dev.GetID(), dev.AllocatableCores(), dev.AllocatableMemory())
 			devs = append(devs, dev)
 			break
 		}
