@@ -28,3 +28,7 @@ format:
 	hack/format.sh
 
 #  vim: set ts=2 sw=2 tw=0 noet :
+
+
+multi_arch:
+	docker buildx build -f Dockerfile  --pull --no-cache --platform=linux/amd64,linux/arm64  -t registry.cn-hangzhou.aliyuncs.com/acejilam/tkestack-gpu-admission:v1.1.5 . --push
